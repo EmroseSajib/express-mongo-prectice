@@ -1,6 +1,7 @@
 var express = require('express');
 var app = express();
 const cors = require('cors');
+const bcrypt = require('bcrypt');
 // Enable CORS for all routes
 app.use(cors());
 const connectDB = require('./db');
@@ -30,6 +31,36 @@ app.post('/register', async (req, res, next) => {
     return res
       .status(201)
       .json({ message: 'Data inserted sucessfully !!', user });
+  } catch (error) {
+    next(error);
+  }
+});
+app.post('/login', async (req, res, next) => {
+  const { email, password } = req.body;
+
+  try {
+    if (!email || !password) {
+      return res
+        .status(400)
+        .json({ message: 'Email or Password feild are empty' });
+    }
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ message: 'user not found' });
+    }
+    const salt = await bcrypt.genSalt(10);
+
+    // Hash the password with the generated salt
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    const isMatched = await bcrypt.compare(password, user?.password);
+
+    console.log(isMatched);
+
+    if (!isMatched) {
+      return res.status(400).json({ message: 'Password not match' });
+    }
+    return res.status(201).json({ message: 'User login successfully!!' });
   } catch (error) {
     next(error);
   }
